@@ -837,7 +837,7 @@ function App() {
                 
                 {isSearchExpanded && (
                   <div className="absolute top-full right-0 mt-2 z-[1300] w-80">
-                    <div className="bg-white border border-gray-300 rounded-lg shadow-lg p-4">
+                    <div className="bg-white border border-[#eacaae] rounded-lg shadow-lg p-4 bg-[#fbeee4]/50">
                       <div className="space-y-3">
                         <Input
                           placeholder="Search for places or events..."
@@ -849,12 +849,12 @@ function App() {
                         
                         {/* Location Suggestions */}
                         {showSuggestions && searchSuggestions.length > 0 && (
-                          <div className="max-h-32 overflow-y-auto border rounded-md bg-gray-50">
-                            <div className="px-3 py-2 text-xs font-medium text-gray-600 bg-gray-100">🏠 Places</div>
+                          <div className="max-h-32 overflow-y-auto border border-[#eacaae] rounded-md bg-[#f5f5f0]">
+                            <div className="px-3 py-2 text-xs font-medium text-[#421f17] bg-[#fbeee4]">🏠 Places</div>
                             {searchSuggestions.slice(0, 3).map((suggestion, index) => (
                               <div
                                 key={`location-${index}`}
-                                className="px-3 py-2 cursor-pointer hover:bg-gray-100 border-b last:border-b-0 text-sm"
+                                className="px-3 py-2 cursor-pointer hover:bg-[#fbeee4] border-b last:border-b-0 text-sm"
                                 onClick={() => {
                                   setMapCenter([Number.parseFloat(suggestion.lat), Number.parseFloat(suggestion.lon)])
                                   setMapZoom(13)
@@ -870,12 +870,12 @@ function App() {
                         
                         {/* Event Results */}
                         {eventSearchResults.length > 0 && (
-                          <div className="max-h-32 overflow-y-auto border rounded-md bg-gray-50">
-                            <div className="px-3 py-2 text-xs font-medium text-gray-600 bg-gray-100">🎯 Events ({eventSearchResults.length})</div>
+                          <div className="max-h-32 overflow-y-auto border border-[#eacaae] rounded-md bg-[#f5f5f0]">
+                            <div className="px-3 py-2 text-xs font-medium text-[#421f17] bg-[#fbeee4]">🎯 Events ({eventSearchResults.length})</div>
                             {eventSearchResults.slice(0, 3).map((event) => (
                               <div
                                 key={`event-${event.id}`}
-                                className="px-3 py-2 cursor-pointer hover:bg-gray-100 border-b last:border-b-0 text-sm"
+                                className="px-3 py-2 cursor-pointer hover:bg-[#fbeee4] border-b last:border-b-0 text-sm"
                                 onClick={() => {
                                   handleEventSelect(event)
                                   setIsSearchExpanded(false)
@@ -888,7 +888,7 @@ function App() {
                           </div>
                         )}
                         
-                        <div className="flex gap-2 pt-2 border-t">
+                        <div className="flex gap-2 pt-2 border-t border-[#eacaae]">
                           <Button 
                             size="sm" 
                             onClick={handleCombinedSearch}
@@ -900,7 +900,7 @@ function App() {
                             size="sm" 
                             variant="outline"
                             onClick={() => setIsSearchExpanded(false)}
-                            className="bg-gray-100 hover:bg-gray-200"
+                            className="flex-1 bg-[#4a2c2a] hover:bg-[#4a2c2a]/80 text-[#f5f1eb] border border-[#eacaae] hover:border-[#d4a88a] transition-colors"
                           >
                             Cancel
                           </Button>
