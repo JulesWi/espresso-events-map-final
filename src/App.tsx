@@ -469,7 +469,7 @@ const PublicationItem = ({ publication }: { publication: Publication }) => {
 function App() {
   const { user, profile, isContributor, loading: authLoading } = useAuth()
 
-  const [, setSelectedEvent] = useState<EspressoEvent | null>(null)
+  const [selectedEvent, setSelectedEvent] = useState<EspressoEvent | null>(null)
   const [mapCenter, setMapCenter] = useState<[number, number]>([39.8283, -98.5795])
   const [mapZoom, setMapZoom] = useState(4)
   const [basemap, setBasemap] = useState("openstreetmap")
@@ -481,21 +481,66 @@ function App() {
   const [events, setEvents] = useState<EspressoEvent[]>([])
   const [publications, setPublications] = useState<Publication[]>([])
   const [topics, setTopics] = useState<Topic[]>([])
+  const [filteredPublications, setFilteredPublications] = useState<Publication[]>([])
+  const [filteredTopics, setFilteredTopics] = useState<Topic[]>([])
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null)
   const [mapClickCoordinates, setMapClickCoordinates] = useState<{ lat: number; lng: number } | undefined>()
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const loadPublicationsForEvent = (eventId: string) => {
-    // For now, display all publications
-    // Later, we could filter by eventId when data is linked
-    console.log('Loading publications for event:', eventId)
+    // Find the event to get its details for filtering
+    const event = events.find(e => e.id === eventId)
+    if (event) {
+      // Filter publications based on event title/theme or other matching criteria
+      // For now, we'll use a simple approach - in a real app this would be linked by foreign key
+      const filteredPublications = publications.filter(pub => 
+        pub.eventId === eventId || // Direct event link
+        pub.title?.toLowerCase().includes(event.title.toLowerCase()) ||
+        pub.preview?.toLowerCase().includes(event.title.toLowerCase()) ||
+        pub.title?.toLowerCase().includes(event.theme.toLowerCase()) ||
+        pub.preview?.toLowerCase().includes(event.theme.toLowerCase())
+      )
+      setFilteredPublications(filteredPublications)
+      console.log('Loading publications for event:', event.title, 'Found:', filteredPublications.length)
+    }
   }
 
   const loadTopicsForEvent = (eventId: string) => {
-    // For now, display all topics
-    // Later, we could filter by eventId when data is linked
-    console.log('Loading topics for event:', eventId)
+    // Find the event to get its details for filtering
+    const event = events.find(e => e.id === eventId)
+    if (event) {
+      // Filter topics based on event title/theme or other matching criteria
+      // For now, we'll use a simple approach - in a real app this would be linked by foreign key
+      const filteredTopics = topics.filter(topic => 
+        topic.eventId === eventId || // Direct event link
+        topic.theme?.toLowerCase().includes(event.title.toLowerCase()) ||
+        topic.theme?.toLowerCase().includes(event.theme.toLowerCase()) ||
+        topic.description?.toLowerCase().includes(event.title.toLowerCase()) ||
+        topic.description?.toLowerCase().includes(event.theme.toLowerCase())
+      )
+      setFilteredTopics(filteredTopics)
+      console.log('Loading topics for event:', event.title, 'Found:', filteredTopics.length)
+    }
   }
+
+  // Handle default event selection and filtering
+  useEffect(() => {
+    if (events.length > 0 && !selectedEvent) {
+      // Default to first event if no event is selected
+      const defaultEvent = events[0]
+      setSelectedEvent(defaultEvent)
+      loadPublicationsForEvent(defaultEvent.id)
+      loadTopicsForEvent(defaultEvent.id)
+    }
+  }, [events, selectedEvent])
+
+  // Update filtered data when publications/topics change and we have a selected event
+  useEffect(() => {
+    if (selectedEvent) {
+      loadPublicationsForEvent(selectedEvent.id)
+      loadTopicsForEvent(selectedEvent.id)
+    }
+  }, [publications, topics, selectedEvent])
 
   const showNotification = (message: string, type: "success" | "error" | "info") => {
     setNotification({ message, type })
@@ -862,7 +907,7 @@ function App() {
                                   setShowSuggestions(false)
                                 }}
                               >
-                                <div className="font-medium">{suggestion.display_name}</div>
+                                <div className="font-medium text-[#421f17]">{suggestion.display_name}</div>
                               </div>
                             ))}
                           </div>
@@ -881,8 +926,8 @@ function App() {
                                   setIsSearchExpanded(false)
                                 }}
                               >
-                                <div className="font-medium">{event.title}</div>
-                                <div className="text-gray-600">{event.location}</div>
+                                <div className="font-medium text-[#421f17]">{event.title}</div>
+                                <div className="text-[#421f17]">{event.location}</div>
                               </div>
                             ))}
                           </div>
@@ -1100,34 +1145,83 @@ function App() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="publications" className="tabs-content">
-              <div className="space-y-3 pt-2">
-                {publications.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    No publications yet. Add events with publication links to see them here.
-                  </p>
-                ) : (
-                  publications.map((pub) => (
-                    <PublicationItem key={pub.id} publication={pub} />
-                  ))
-                )}
+<TabsContent value="publications" className="tabs-content">
+              <div className="overflow-auto h-full pr-1">
+                <table className="publications-table w-full">
+                  <thead>
+                    <tr>
+                      <th className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs" style={{ width: "40px" }}></th>
+                      <th className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs">Publication</th>
+                      <th className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs">Type</th>
+                      <th className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs">Link</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPublications.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="text-center py-4 text-sm text-gray-500 border border-[#eacaae]">
+                          {selectedEvent ? `No publications found for "${selectedEvent.title}".` : "No publications yet."}
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredPublications.map((pub) => (
+                        <tr key={pub.id}>
+                          <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs text-center">
+                            📄
+                          </td>
+                          <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs font-medium">
+                            {pub.title}
+                          </td>
+                          <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs">
+                            {pub.type}
+                          </td>
+                          <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs">
+                            <a href={pub.url} target="_blank" rel="noopener noreferrer" className="text-[#4a2c2a] hover:text-[#f5f1eb] underline">
+                              View
+                            </a>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </TabsContent>
 
             <TabsContent value="topics" className="tabs-content">
-              <div className="space-y-2 pt-2">
-                {topics.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">
-                    No discussion topics available yet. Topics will appear here when events are created with discussion points.
-                  </p>
-                ) : (
-                  topics.map((topic) => (
-                    <div key={topic.id} className="publication-item">
-                      <h4 className="font-medium text-[#f5f1eb]">{topic.theme}</h4>
-                      <p className="text-sm text-gray-600">{topic.description}</p>
-                    </div>
-                  ))
-                )}
+              <div className="overflow-auto h-full pr-1">
+                <table className="topics-table w-full">
+                  <thead>
+                    <tr>
+                      <th className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs" style={{ width: "40px" }}></th>
+                      <th className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs">Topic</th>
+                      <th className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTopics.length === 0 ? (
+                      <tr>
+                        <td colSpan="3" className="text-center py-4 text-sm text-gray-500 border border-[#eacaae]">
+                          {selectedEvent ? `No discussion topics found for "${selectedEvent.title}".` : "No discussion topics available yet."}
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredTopics.map((topic) => (
+                        <tr key={topic.id}>
+                          <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs text-center">
+                            💬
+                          </td>
+                          <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs font-medium">
+                            {topic.theme}
+                          </td>
+                          <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs">
+                            {topic.description}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </TabsContent>
           </Tabs>
