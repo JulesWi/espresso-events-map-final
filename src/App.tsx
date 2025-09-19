@@ -486,14 +486,14 @@ function App() {
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const loadPublicationsForEvent = (eventId: string) => {
-    // Pour l'instant, afficher toutes les publications
-    // Plus tard, nous pourrions filtrer par eventId quand les données seront liées
+    // For now, display all publications
+    // Later, we could filter by eventId when data is linked
     console.log('Loading publications for event:', eventId)
   }
 
   const loadTopicsForEvent = (eventId: string) => {
-    // Pour l'instant, afficher tous les topics
-    // Plus tard, nous pourrions filtrer par eventId quand les données seront liées
+    // For now, display all topics
+    // Later, we could filter by eventId when data is linked
     console.log('Loading topics for event:', eventId)
   }
 
@@ -648,7 +648,7 @@ function App() {
     setMapCenter(event.coordinates)
     setMapZoom(12)
     
-    // Charger les publications et topics spécifiques à cet événement
+    // Load publications and topics for the selected event
     loadPublicationsForEvent(event.id)
     loadTopicsForEvent(event.id)
   }
@@ -840,7 +840,7 @@ function App() {
                     <div className="bg-white border border-gray-300 rounded-lg shadow-lg p-4">
                       <div className="space-y-3">
                         <Input
-                          placeholder="Rechercher lieux ou événements..."
+                          placeholder="Search for places or events..."
                           value={searchQuery}
                           onChange={(e) => handleSearchInputChange(e.target.value)}
                           onKeyPress={(e) => e.key === "Enter" && handleCombinedSearch()}
@@ -850,7 +850,7 @@ function App() {
                         {/* Location Suggestions */}
                         {showSuggestions && searchSuggestions.length > 0 && (
                           <div className="max-h-32 overflow-y-auto border rounded-md bg-gray-50">
-                            <div className="px-3 py-2 text-xs font-medium text-gray-600 bg-gray-100">🏠 Lieux</div>
+                            <div className="px-3 py-2 text-xs font-medium text-gray-600 bg-gray-100">🏠 Places</div>
                             {searchSuggestions.slice(0, 3).map((suggestion, index) => (
                               <div
                                 key={`location-${index}`}
@@ -871,7 +871,7 @@ function App() {
                         {/* Event Results */}
                         {eventSearchResults.length > 0 && (
                           <div className="max-h-32 overflow-y-auto border rounded-md bg-gray-50">
-                            <div className="px-3 py-2 text-xs font-medium text-gray-600 bg-gray-100">🎯 Événements ({eventSearchResults.length})</div>
+                            <div className="px-3 py-2 text-xs font-medium text-gray-600 bg-gray-100">🎯 Events ({eventSearchResults.length})</div>
                             {eventSearchResults.slice(0, 3).map((event) => (
                               <div
                                 key={`event-${event.id}`}
@@ -894,7 +894,7 @@ function App() {
                             onClick={handleCombinedSearch}
                             className="flex-1 bg-[#4a2c2a] hover:bg-[#4a2c2a]/80 text-[#f5f1eb]"
                           >
-                            Rechercher
+                            Search
                           </Button>
                           <Button 
                             size="sm" 
@@ -902,7 +902,7 @@ function App() {
                             onClick={() => setIsSearchExpanded(false)}
                             className="bg-gray-100 hover:bg-gray-200"
                           >
-                            Annuler
+                            Cancel
                           </Button>
                         </div>
                       </div>
