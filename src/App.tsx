@@ -821,7 +821,7 @@ function App() {
               <UserMenu />
 
               {/* Collapsible Search Bar */}
-              <div className="relative">
+              <div className="relative ml-2">
                 <Button
                   size="sm"
                   variant="outline"
@@ -877,10 +877,7 @@ function App() {
                                 key={`event-${event.id}`}
                                 className="px-3 py-2 cursor-pointer hover:bg-gray-100 border-b last:border-b-0 text-sm"
                                 onClick={() => {
-                                  setMapCenter(event.coordinates)
-                                  setMapZoom(13)
-                                  loadPublicationsForEvent(event.id)
-                                  loadTopicsForEvent(event.id)
+                                  handleEventSelect(event)
                                   setIsSearchExpanded(false)
                                 }}
                               >
@@ -913,6 +910,8 @@ function App() {
                   </div>
                 )}
               </div>
+
+              {isContributor && (
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                   <DialogTrigger asChild>
                     <Button
@@ -932,8 +931,8 @@ function App() {
                   </DialogContent>
                 </Dialog>
               )}
-            </div>
-          </div>
+
+              <Button
                 size="sm"
                 variant="outline"
                 className="text-[#f5f1eb] border-[#eacaae] hover:bg-[#f5f1eb]/20 bg-[#4a2c2a]"
