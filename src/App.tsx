@@ -1,11 +1,10 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import {
   CheckCircle,
   AlertCircle,
   X,
-  ExternalLink,
   Calendar,
   MapPin,
   MapIcon,
@@ -16,7 +15,6 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Button } from "./components/ui/button"
 import { Input } from "./components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./components/ui/dialog"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "./components/ui/form"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./components/ui/select"
@@ -28,9 +26,10 @@ import UserMenu from "./components/auth/UserMenu"
 import { supabase } from "./lib/supabase/client"
 import { LinkPreview, LinkPreviewSkeleton } from "./components/LinkPreview"
 import { useLinkPreview } from "./hooks/useLinkPreview"
+import { MainLayout } from "./components/layout/MainLayout"
 import "./App.css"
 
-delete L.Icon.Default.prototype._getIconUrl;
+delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
@@ -90,14 +89,14 @@ interface Topic {
   eventId: string
 }
 
-const createCoffeeIcon = (status) => {
+const createCoffeeIcon = (status: string) => {
   const icons = {
     upcoming: '/2139cfd7-8158-41a1-9e56-24e91f29b6d6/Upcoming+Event.png',
     ongoing: '/437403cf-b427-4070-bac2-ea1f4820271f/Ongoing+Event.png',
     ended: '/32c0c727-08b6-44f6-90b9-d800f97eb302/Ended+Event.png',
   };
   return new L.Icon({
-    iconUrl: icons[status] || icons.ended,
+    iconUrl: icons[status as keyof typeof icons] || icons.ended,
     iconSize: [32, 32],
     iconAnchor: [16, 32],
     popupAnchor: [0, -32]
@@ -138,7 +137,6 @@ const AddEventForm = ({
     },
   })
 
-  const editorRef = useRef<HTMLDivElement>(null)
 
   const publicationLink = form.watch("publicationLink")
   const { preview: linkPreview, loading: linkLoading } = useLinkPreview(publicationLink || null)
@@ -440,31 +438,6 @@ const Notification = ({
   )
 }
 
-const PublicationItem = ({ publication }: { publication: Publication }) => {
-  const { preview: linkPreview, loading: linkLoading } = useLinkPreview(publication.url)
-
-  return (
-    <div className="publication-item">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <h4 className="font-medium text-[#f5f1eb] mb-1">{publication.title}</h4>
-          <p className="text-sm text-gray-600 mb-2">{publication.preview}</p>
-          <span className="text-xs text-[#f5f1eb] bg-[#fbeee4] px-2 py-1 rounded">
-            {publication.type.toUpperCase()}
-          </span>
-        </div>
-        <Button size="sm" variant="ghost" className="text-[#f5f1eb] hover:text-[#f5f1eb]/80" asChild>
-          <a href={publication.url} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="w-4 h-4" />
-          </a>
-        </Button>
-      </div>
-      <div className="mt-2">
-        {linkLoading ? <LinkPreviewSkeleton /> : linkPreview ? <LinkPreview preview={linkPreview} /> : null}
-      </div>
-    </div>
-  )
-}
 
 function App() {
   const { user, profile, isContributor, loading: authLoading } = useAuth()
@@ -481,66 +454,19 @@ function App() {
   const [events, setEvents] = useState<EspressoEvent[]>([])
   const [publications, setPublications] = useState<Publication[]>([])
   const [topics, setTopics] = useState<Topic[]>([])
-  const [filteredPublications, setFilteredPublications] = useState<Publication[]>([])
-  const [filteredTopics, setFilteredTopics] = useState<Topic[]>([])
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null)
   const [mapClickCoordinates, setMapClickCoordinates] = useState<{ lat: number; lng: number } | undefined>()
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  const loadPublicationsForEvent = (eventId: string) => {
-    // Find the event to get its details for filtering
-    const event = events.find(e => e.id === eventId)
-    if (event) {
-      // Filter publications based on event title/theme or other matching criteria
-      // For now, we'll use a simple approach - in a real app this would be linked by foreign key
-      const filteredPublications = publications.filter(pub => 
-        pub.eventId === eventId || // Direct event link
-        pub.title?.toLowerCase().includes(event.title.toLowerCase()) ||
-        pub.preview?.toLowerCase().includes(event.title.toLowerCase()) ||
-        pub.title?.toLowerCase().includes(event.theme.toLowerCase()) ||
-        pub.preview?.toLowerCase().includes(event.theme.toLowerCase())
-      )
-      setFilteredPublications(filteredPublications)
-      console.log('Loading publications for event:', event.title, 'Found:', filteredPublications.length)
-    }
-  }
 
-  const loadTopicsForEvent = (eventId: string) => {
-    // Find the event to get its details for filtering
-    const event = events.find(e => e.id === eventId)
-    if (event) {
-      // Filter topics based on event title/theme or other matching criteria
-      // For now, we'll use a simple approach - in a real app this would be linked by foreign key
-      const filteredTopics = topics.filter(topic => 
-        topic.eventId === eventId || // Direct event link
-        topic.theme?.toLowerCase().includes(event.title.toLowerCase()) ||
-        topic.theme?.toLowerCase().includes(event.theme.toLowerCase()) ||
-        topic.description?.toLowerCase().includes(event.title.toLowerCase()) ||
-        topic.description?.toLowerCase().includes(event.theme.toLowerCase())
-      )
-      setFilteredTopics(filteredTopics)
-      console.log('Loading topics for event:', event.title, 'Found:', filteredTopics.length)
-    }
-  }
-
-  // Handle default event selection and filtering
+  // Handle default event selection
   useEffect(() => {
     if (events.length > 0 && !selectedEvent) {
       // Default to first event if no event is selected
       const defaultEvent = events[0]
       setSelectedEvent(defaultEvent)
-      loadPublicationsForEvent(defaultEvent.id)
-      loadTopicsForEvent(defaultEvent.id)
     }
   }, [events, selectedEvent])
-
-  // Update filtered data when publications/topics change and we have a selected event
-  useEffect(() => {
-    if (selectedEvent) {
-      loadPublicationsForEvent(selectedEvent.id)
-      loadTopicsForEvent(selectedEvent.id)
-    }
-  }, [publications, topics, selectedEvent])
 
   const showNotification = (message: string, type: "success" | "error" | "info") => {
     setNotification({ message, type })
@@ -674,13 +600,6 @@ function App() {
     }
   }
 
-  const handleSuggestionSelect = (suggestion: GeocodingResult) => {
-    setSearchQuery(suggestion.display_name)
-    setMapCenter([Number.parseFloat(suggestion.lat), Number.parseFloat(suggestion.lon)])
-    setMapZoom(12)
-    setShowSuggestions(false)
-    setSearchSuggestions([])
-  }
 
   const basemaps = {
     openstreetmap: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -692,10 +611,6 @@ function App() {
     setSelectedEvent(event)
     setMapCenter(event.coordinates)
     setMapZoom(12)
-    
-    // Load publications and topics for the selected event
-    loadPublicationsForEvent(event.id)
-    loadTopicsForEvent(event.id)
   }
 
   const handleMapClick = (lat: number, lng: number) => {
@@ -854,389 +769,245 @@ function App() {
   }
 
   return (
-    <div className="app-container">
+    <MainLayout
+      topics={topics}
+      publications={publications}
+      events={events}
+      selectedEvent={selectedEvent}
+      onEventSelect={handleEventSelect}
+      getStatusColor={getStatusColor}
+      getStatusIcon={getStatusIcon}
+    >
       {notification && (
         <Notification message={notification.message} type={notification.type} onClose={() => setNotification(null)} />
       )}
 
-      <div className="main-content">
-        <div className="map-area">
-          <div className="map-overlay" style={{ top: "16px", right: "16px", zIndex: 1150 }}>
-            <div className="flex gap-2">
-              <UserMenu />
+      <div className="map-overlay" style={{ top: "16px", right: "16px", zIndex: 1150 }}>
+        <div className="flex gap-2">
+          <UserMenu />
 
-              {/* Collapsible Search Bar */}
-              <div className="relative ml-2">
+          {/* Collapsible Search Bar */}
+          <div className="relative ml-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsSearchExpanded(!isSearchExpanded)}
+              className="bg-[#fbeee4] border-[#eacaae] text-[#421f17] hover:bg-[#f5f5f0]"
+              aria-label="Toggle Search"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </Button>
+            
+            {isSearchExpanded && (
+              <div className="absolute top-full right-0 mt-2 z-[1300] w-80">
+                <div className="bg-white border border-[#eacaae] rounded-lg shadow-lg p-4 bg-[#fbeee4]/50">
+                  <div className="space-y-3">
+                    <Input
+                      placeholder="Search for places or events..."
+                      value={searchQuery}
+                      onChange={(e) => handleSearchInputChange(e.target.value)}
+                      onKeyPress={(e) => e.key === "Enter" && handleCombinedSearch()}
+                      className="w-full"
+                    />
+                    
+                    {/* Location Suggestions */}
+                    {showSuggestions && searchSuggestions.length > 0 && (
+                      <div className="max-h-32 overflow-y-auto border border-[#eacaae] rounded-md bg-[#f5f5f0]">
+                        <div className="px-3 py-2 text-xs font-medium text-[#421f17] bg-[#fbeee4]">🏠 Places</div>
+                        {searchSuggestions.slice(0, 3).map((suggestion, index) => (
+                          <div
+                            key={`location-${index}`}
+                            className="px-3 py-2 cursor-pointer hover:bg-[#fbeee4] border-b last:border-b-0 text-sm"
+                            onClick={() => {
+                              setMapCenter([Number.parseFloat(suggestion.lat), Number.parseFloat(suggestion.lon)])
+                              setMapZoom(13)
+                              setIsSearchExpanded(false)
+                              setShowSuggestions(false)
+                            }}
+                          >
+                            <div className="font-medium text-[#421f17]">{suggestion.display_name}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Event Results */}
+                    {eventSearchResults.length > 0 && (
+                      <div className="max-h-32 overflow-y-auto border border-[#eacaae] rounded-md bg-[#f5f5f0]">
+                        <div className="px-3 py-2 text-xs font-medium text-[#421f17] bg-[#fbeee4]">🎯 Events ({eventSearchResults.length})</div>
+                        {eventSearchResults.slice(0, 3).map((event) => (
+                          <div
+                            key={`event-${event.id}`}
+                            className="px-3 py-2 cursor-pointer hover:bg-[#fbeee4] border-b last:border-b-0 text-sm"
+                            onClick={() => {
+                              handleEventSelect(event)
+                              setIsSearchExpanded(false)
+                            }}
+                          >
+                            <div className="font-medium text-[#421f17]">{event.title}</div>
+                            <div className="text-[#421f17]">{event.location}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="flex gap-2 pt-2 border-t border-[#eacaae]">
+                      <Button 
+                        size="sm" 
+                        onClick={handleCombinedSearch}
+                        className="flex-1 bg-[#4a2c2a] hover:bg-[#4a2c2a]/80 text-[#f5f1eb]"
+                      >
+                        Search
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => setIsSearchExpanded(false)}
+                        className="flex-1 bg-[#4a2c2a] hover:bg-[#4a2c2a]/80 text-[#f5f1eb] border border-[#eacaae] hover:border-[#d4a88a] transition-colors"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {isContributor && (
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setIsSearchExpanded(!isSearchExpanded)}
                   className="bg-[#fbeee4] border-[#eacaae] text-[#421f17] hover:bg-[#f5f5f0]"
-                  aria-label="Toggle Search"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <circle cx="11" cy="11" r="8" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                  </svg>
+                  <Calendar className="w-4 h-4 mr-1" />
+                  Add Event
                 </Button>
-                
-                {isSearchExpanded && (
-                  <div className="absolute top-full right-0 mt-2 z-[1300] w-80">
-                    <div className="bg-white border border-[#eacaae] rounded-lg shadow-lg p-4 bg-[#fbeee4]/50">
-                      <div className="space-y-3">
-                        <Input
-                          placeholder="Search for places or events..."
-                          value={searchQuery}
-                          onChange={(e) => handleSearchInputChange(e.target.value)}
-                          onKeyPress={(e) => e.key === "Enter" && handleCombinedSearch()}
-                          className="w-full"
-                        />
-                        
-                        {/* Location Suggestions */}
-                        {showSuggestions && searchSuggestions.length > 0 && (
-                          <div className="max-h-32 overflow-y-auto border border-[#eacaae] rounded-md bg-[#f5f5f0]">
-                            <div className="px-3 py-2 text-xs font-medium text-[#421f17] bg-[#fbeee4]">🏠 Places</div>
-                            {searchSuggestions.slice(0, 3).map((suggestion, index) => (
-                              <div
-                                key={`location-${index}`}
-                                className="px-3 py-2 cursor-pointer hover:bg-[#fbeee4] border-b last:border-b-0 text-sm"
-                                onClick={() => {
-                                  setMapCenter([Number.parseFloat(suggestion.lat), Number.parseFloat(suggestion.lon)])
-                                  setMapZoom(13)
-                                  setIsSearchExpanded(false)
-                                  setShowSuggestions(false)
-                                }}
-                              >
-                                <div className="font-medium text-[#421f17]">{suggestion.display_name}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {/* Event Results */}
-                        {eventSearchResults.length > 0 && (
-                          <div className="max-h-32 overflow-y-auto border border-[#eacaae] rounded-md bg-[#f5f5f0]">
-                            <div className="px-3 py-2 text-xs font-medium text-[#421f17] bg-[#fbeee4]">🎯 Events ({eventSearchResults.length})</div>
-                            {eventSearchResults.slice(0, 3).map((event) => (
-                              <div
-                                key={`event-${event.id}`}
-                                className="px-3 py-2 cursor-pointer hover:bg-[#fbeee4] border-b last:border-b-0 text-sm"
-                                onClick={() => {
-                                  handleEventSelect(event)
-                                  setIsSearchExpanded(false)
-                                }}
-                              >
-                                <div className="font-medium text-[#421f17]">{event.title}</div>
-                                <div className="text-[#421f17]">{event.location}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        
-                        <div className="flex gap-2 pt-2 border-t border-[#eacaae]">
-                          <Button 
-                            size="sm" 
-                            onClick={handleCombinedSearch}
-                            className="flex-1 bg-[#4a2c2a] hover:bg-[#4a2c2a]/80 text-[#f5f1eb]"
-                          >
-                            Search
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => setIsSearchExpanded(false)}
-                            className="flex-1 bg-[#4a2c2a] hover:bg-[#4a2c2a]/80 text-[#f5f1eb] border border-[#eacaae] hover:border-[#d4a88a] transition-colors"
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              </DialogTrigger>
+              <DialogContent className="max-w-md w-full dialog-overlay max-h-[85vh] bg-[#fbeee4]" style={{ zIndex: 2000 }}>
+                <DialogHeader>
+                  <DialogTitle className="text-[#421f17]">Add Espresso Event</DialogTitle>
+                </DialogHeader>
+                <AddEventForm onSubmit={handleAddEvent} mapCoordinates={mapClickCoordinates} />
+              </DialogContent>
+            </Dialog>
+          )}
 
-              {isContributor && (
-                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="bg-[#fbeee4] border-[#eacaae] text-[#421f17] hover:bg-[#f5f5f0]"
-                    >
-                      <Calendar className="w-4 h-4 mr-1" />
-                      Add Event
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md w-full dialog-overlay max-h-[85vh] bg-[#fbeee4]" style={{ zIndex: 2000 }}>
-                    <DialogHeader>
-                      <DialogTitle className="text-[#421f17]">Add Espresso Event</DialogTitle>
-                    </DialogHeader>
-                    <AddEventForm onSubmit={handleAddEvent} mapCoordinates={mapClickCoordinates} />
-                  </DialogContent>
-                </Dialog>
-              )}
-
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-[#f5f1eb] border-[#eacaae] hover:bg-[#f5f1eb]/20 bg-[#4a2c2a]"
+            onClick={handleLocate}
+          >
+            <MapPin className="w-4 h-4 mr-1" />
+            Locate
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button
                 size="sm"
                 variant="outline"
-                className="text-[#f5f1eb] border-[#eacaae] hover:bg-[#f5f1eb]/20 bg-[#4a2c2a]"
-                onClick={handleLocate}
+                className="text-[#f5f1eb] border-[#eacaae] hover:bg-[#f5f1eb]/20 bg-[#4a2c2a] flex items-center"
               >
-                <MapPin className="w-4 h-4 mr-1" />
-                Locate
+                <MapIcon className="w-4 h-4 mr-1" />
+                Switch Map
               </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-[#f5f1eb] border-[#eacaae] hover:bg-[#f5f1eb]/20 bg-[#4a2c2a] flex items-center"
-                  >
-                    <MapIcon className="w-4 h-4 mr-1" />
-                    Switch Map
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="z-[1200] bg-[#fbeee4] border-[#eacaae]">
-                  {Object.keys(basemaps).map((key) => (
-                    <DropdownMenuItem
-                      key={key}
-                      onClick={() => setBasemap(key)}
-                      className={basemap === key ? "font-bold text-[#421f17] bg-[#eacaae]" : "text-[#421f17] hover:bg-[#f5f5f0]"}
-                    >
-                      {key.charAt(0).toUpperCase() + key.slice(1)}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-
-
-          <div className="map-overlay legend-panel">
-            <h3 className="text-sm font-semibold text-[#421f17] mb-3">Event Status</h3>
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center gap-3">
-                <img src="/2139cfd7-8158-41a1-9e56-24e91f29b6d6/Upcoming+Event.png" alt="Upcoming" className="w-7 h-7" />
-                <span className="text-[#421f17] font-medium">Upcoming</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <img src="/437403cf-b427-4070-bac2-ea1f4820271f/Ongoing+Event.png" alt="Ongoing" className="w-7 h-7" />
-                <span className="text-[#421f17] font-medium">Ongoing</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <img src="/32c0c727-08b6-44f6-90b9-d800f97eb302/Ended+Event.png" alt="Ended" className="w-7 h-7" />
-                <span className="text-[#421f17] font-medium">Ended</span>
-              </div>
-            </div>
-          </div>
-          <div className="map-container relative">
-            <MapContainer
-              center={mapCenter}
-              zoom={mapZoom}
-              scrollWheelZoom={true}
-              className="h-full w-full"
-              style={{ zIndex: 1 }}
-            >
-              <MapUpdater center={mapCenter} zoom={mapZoom} />
-              {isContributor && <MapClickHandler onMapClick={handleMapClick} />}
-              <TileLayer
-                url={basemaps[basemap as keyof typeof basemaps]}
-                attribution="&copy; OpenStreetMap contributors"
-              />
-              {events.map((event) => (
-                <Marker key={event.id} position={event.coordinates} icon={createCoffeeIcon(event.status)}>
-                  <Popup className="custom-popup">
-                    <div className="p-2 min-w-[220px] max-w-[280px]">
-                      <h3 className="font-bold text-[#421f17] mb-2 text-center">Details of the event</h3>
-                      <div className="space-y-2 text-xs">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-[#421f17] mt-0.5 flex-shrink-0" />
-                          <span className="text-[#421f17] text-xs">{event.location}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-[#421f17] flex-shrink-0" />
-                          <span className="text-[#421f17] text-xs">Organizer: {event.host || event.organizer}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-[#421f17] flex-shrink-0" />
-                          <span className="text-[#421f17] text-xs">Date: {event.schedule || event.date}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-[#421f17] flex-shrink-0" />
-                          <span>
-                            Guests:{" "}
-                            {Array.isArray(event.guests) ? event.guests.join(", ") : event.guests || "Open to Public"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </Popup>
-                </Marker>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="z-[1200] bg-[#fbeee4] border-[#eacaae]">
+              {Object.keys(basemaps).map((key) => (
+                <DropdownMenuItem
+                  key={key}
+                  onClick={() => setBasemap(key)}
+                  className={basemap === key ? "font-bold text-[#421f17] bg-[#eacaae]" : "text-[#421f17] hover:bg-[#f5f5f0]"}
+                >
+                  {key.charAt(0).toUpperCase() + key.slice(1)}
+                </DropdownMenuItem>
               ))}
-            </MapContainer>
-            {/* Bande ombrée transparente en bas de la carte */}
-            <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/30 to-transparent pointer-events-none z-[5]"></div>
-            {/* Logo Espresso dans le coin inférieur gauche */}
-            <div className="absolute bottom-4 left-4 z-[10]">
-              <img 
-                src="/177dfa6e-81d8-462a-93e1-59040f268c80/Logo+Espresso.png" 
-                alt="Espresso Logo" 
-                className="w-36 h-20 opacity-80 hover:opacity-100 transition-opacity duration-300"
-              />
-            </div>
-          </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      <div className="bottom-panel">
-        <div className="events-section">
-          <h2 className="text-lg font-bold text-[#f5f1eb] mb-3 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-[#f5f1eb]" />
-            Events
-          </h2>
-          <div className="overflow-auto h-[calc(100%-2rem)] pr-1">
-            <table className="events-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "40px" }} className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs"></th>
-                  <th className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs">City</th>
-                  <th className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs">Theme</th>
-                  <th className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {events.map((event) => (
-                  <tr key={event.id} onClick={() => handleEventSelect(event)} className="cursor-pointer">
-                    <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs">
-                      <MapPin className="w-4 h-4 text-[#421f17]" />
-                    </td>
-                    <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs font-medium">{event.city || event.location}</td>
-                    <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs">{event.theme}</td>
-                    <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs flex items-center gap-1 w-fit ${getStatusColor(event.status)}`}
-                      >
-                        {getStatusIcon(event.status)}
-                        {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+      <div className="map-overlay legend-panel">
+        <h3 className="text-sm font-semibold text-[#421f17] mb-3">Event Status</h3>
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center gap-3">
+            <img src="/2139cfd7-8158-41a1-9e56-24e91f29b6d6/Upcoming+Event.png" alt="Upcoming" className="w-7 h-7" />
+            <span className="text-[#421f17] font-medium">Upcoming</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <img src="/437403cf-b427-4070-bac2-ea1f4820271f/Ongoing+Event.png" alt="Ongoing" className="w-7 h-7" />
+            <span className="text-[#421f17] font-medium">Ongoing</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <img src="/32c0c727-08b6-44f6-90b9-d800f97eb302/Ended+Event.png" alt="Ended" className="w-7 h-7" />
+            <span className="text-[#421f17] font-medium">Ended</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="map-container relative">
+        <MapContainer
+          center={mapCenter}
+          zoom={mapZoom}
+          scrollWheelZoom={true}
+          className="h-full w-full"
+          style={{ zIndex: 1 }}
+        >
+          <MapUpdater center={mapCenter} zoom={mapZoom} />
+          {isContributor && <MapClickHandler onMapClick={handleMapClick} />}
+          <TileLayer
+            url={basemaps[basemap as keyof typeof basemaps]}
+            attribution="&copy; OpenStreetMap contributors"
+          />
+          {events.map((event) => (
+            <Marker key={event.id} position={event.coordinates} icon={createCoffeeIcon(event.status)}>
+              <Popup className="custom-popup">
+                <div className="p-2 min-w-[220px] max-w-[280px]">
+                  <h3 className="font-bold text-[#421f17] mb-2 text-center">Details of the event</h3>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-[#421f17] mt-0.5 flex-shrink-0" />
+                      <span className="text-[#421f17] text-xs">{event.location}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-[#421f17] flex-shrink-0" />
+                      <span className="text-[#421f17] text-xs">Organizer: {event.host || event.organizer}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-[#421f17] flex-shrink-0" />
+                      <span className="text-[#421f17] text-xs">Date: {event.schedule || event.date}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-[#421f17] flex-shrink-0" />
+                      <span>
+                        Guests:{" "}
+                        {Array.isArray(event.guests) ? event.guests.join(", ") : event.guests || "Open to Public"}
                       </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="publications-section">
-          <Tabs defaultValue="publications" className="h-full">
-            <TabsList className="grid w-full grid-cols-2 bg-[#fbeee4]">
-              <TabsTrigger
-                value="publications"
-                className="text-[#f5f1eb] data-[state=active]:bg-[#f5f1eb] data-[state=active]:text-[#4a2c2a]"
-              >
-                📰 Publications
-              </TabsTrigger>
-              <TabsTrigger
-                value="topics"
-                className="text-[#f5f1eb] data-[state=active]:bg-[#f5f1eb] data-[state=active]:text-[#4a2c2a]"
-              >
-                💬 Topics
-              </TabsTrigger>
-            </TabsList>
-
-<TabsContent value="publications" className="tabs-content">
-              <div className="overflow-auto h-full pr-1">
-                <table className="publications-table w-full">
-                  <thead>
-                    <tr>
-                      <th className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs" style={{ width: "40px" }}></th>
-                      <th className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs">Publication</th>
-                      <th className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs">Type</th>
-                      <th className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs">Link</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredPublications.length === 0 ? (
-                      <tr>
-                        <td colSpan="4" className="text-center py-4 text-sm text-gray-500 border border-[#eacaae]">
-                          {selectedEvent ? `No publications found for "${selectedEvent.title}".` : "No publications yet."}
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredPublications.map((pub) => (
-                        <tr key={pub.id}>
-                          <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs text-center">
-                            📄
-                          </td>
-                          <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs font-medium">
-                            {pub.title}
-                          </td>
-                          <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs">
-                            {pub.type}
-                          </td>
-                          <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs">
-                            <a href={pub.url} target="_blank" rel="noopener noreferrer" className="text-[#4a2c2a] hover:text-[#f5f1eb] underline">
-                              View
-                            </a>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="topics" className="tabs-content">
-              <div className="overflow-auto h-full pr-1">
-                <table className="topics-table w-full">
-                  <thead>
-                    <tr>
-                      <th className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs" style={{ width: "40px" }}></th>
-                      <th className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs">Topic</th>
-                      <th className="text-[#421f17] border border-[#eacaae] px-2 py-1 font-semibold text-xs">Description</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTopics.length === 0 ? (
-                      <tr>
-                        <td colSpan="3" className="text-center py-4 text-sm text-gray-500 border border-[#eacaae]">
-                          {selectedEvent ? `No discussion topics found for "${selectedEvent.title}".` : "No discussion topics available yet."}
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredTopics.map((topic) => (
-                        <tr key={topic.id}>
-                          <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs text-center">
-                            💬
-                          </td>
-                          <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs font-medium">
-                            {topic.theme}
-                          </td>
-                          <td className="text-[#421f17] border border-[#eacaae] px-2 py-1 text-xs">
-                            {topic.description}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </TabsContent>
-          </Tabs>
+                    </div>
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+        </MapContainer>
+        {/* Bande ombrée transparente en bas de la carte */}
+        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/30 to-transparent pointer-events-none z-[5]"></div>
+        {/* Logo Espresso dans le coin inférieur gauche */}
+        <div className="absolute bottom-4 left-4 z-[10]">
+          <img 
+            src="/177dfa6e-81d8-462a-93e1-59040f268c80/Logo+Espresso.png" 
+            alt="Espresso Logo" 
+            className="w-36 h-20 opacity-80 hover:opacity-100 transition-opacity duration-300"
+          />
         </div>
       </div>
-
-      {/* Notification component */}
-      {notification && (
-        <Notification
-          message={notification.message}
-          type={notification.type}
-          onClose={() => setNotification(null)}
-        />
-      )}
-    </div>
+    </MainLayout>
   )
 }
 
