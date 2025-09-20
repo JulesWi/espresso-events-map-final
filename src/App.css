@@ -186,7 +186,7 @@ button.selected, .btn.selected, .Button.selected {
   color: #421f17 !important;
 }
 
-/* App layout */
+/* App layout - 3 division structure */
 .app-container {
   display: flex;
   flex-direction: column;
@@ -201,11 +201,12 @@ button.selected, .btn.selected, .Button.selected {
   overflow: hidden;
 }
 
-/* Map styling with proper containment */
+/* Map styling with proper containment - adjusted for sidebar */
 .map-area {
   flex: 1;
   position: relative;
   overflow: hidden;
+  margin-right: 0;
 }
 
 /* Map Container - Properly contained */
@@ -336,32 +337,21 @@ button.selected, .btn.selected, .Button.selected {
   filter: blur(8px);
 }
 
-/* Bottom panel */
+/* Bottom panel - updated for new layout */
 .bottom-panel {
-  height: 320px;
+  height: 250px;
   display: flex;
   background-color: rgba(66, 31, 23, 0.95);
   backdrop-filter: blur(8px);
-  border-top: none;
+  border-top: 2px solid #eacaae;
   z-index: 100;
   position: relative;
   overflow: hidden;
-  border: 2px solid #eacaae !important;
-  border-radius: 8px;
+  flex-shrink: 0;
 }
 
-.events-section, .publications-section {
-  width: 50%;
-  flex: none;
-  padding: 16px;
-  background-color: #421f17;
-  overflow-y: auto;
-  border-right: 1px solid #eacaae !important;
-}
+/* Remove old events and publications sections - now handled by new components */
 
-.events-section {
-  border-right: none;
-}
 
 /* Table styling */
 .events-table {
@@ -415,10 +405,26 @@ button.selected, .btn.selected, .Button.selected {
   box-shadow: 0 4px 12px rgba(66, 31, 23, 0.15);
 }
 
-/* Responsive design */
+/* Responsive design - updated for 3-division layout */
 @media (max-width: 1024px) {
   .bottom-panel {
-    height: 280px;
+    height: 220px;
+  }
+
+  .main-content {
+    flex-direction: column;
+  }
+
+  .map-area {
+    margin-right: 0;
+  }
+
+  /* Sidebar becomes horizontal on tablet */
+  .main-content > div:last-child {
+    width: 100% !important;
+    height: 200px !important;
+    border-left: none !important;
+    border-top: 2px solid #eacaae !important;
   }
 
   .tools-panel {
@@ -433,37 +439,39 @@ button.selected, .btn.selected, .Button.selected {
   }
 
   .legend-panel {
-    bottom: 140px;
+    bottom: 240px;
     left: 16px;
     z-index: 1200;
     background-color: rgba(255, 255, 255, 0.8) !important;
     padding: 16px !important;
     position: absolute;
   }
-
-  .logo-container img {
-    height: 56px;
-  }
-
-  .logo-container h1 {
-    font-size: 1.1rem;
-  }
 }
 
 @media (max-width: 768px) {
-  .bottom-panel {
-    height: auto;
-    max-height: 50vh;
+  .app-container {
     flex-direction: column;
   }
 
-  .events-section, .publications-section {
-    width: 100% !important;
-    border-right: none;
+  .main-content {
+    flex-direction: column;
+    flex: 1;
   }
 
-  .events-section {
-    border-bottom: none;
+  .map-area {
+    flex: 1;
+    margin-right: 0;
+  }
+
+  /* Hide sidebar on mobile or make it collapsible */
+  .main-content > div:last-child {
+    display: none;
+  }
+
+  .bottom-panel {
+    height: auto;
+    max-height: 40vh;
+    flex-direction: column;
   }
 
   .tools-panel {
@@ -478,24 +486,21 @@ button.selected, .btn.selected, .Button.selected {
   }
 
   .legend-panel {
-    bottom: 140px;
+    bottom: 180px;
     left: 16px;
     z-index: 1200;
     background-color: rgba(255, 255, 255, 0.8) !important;
     padding: 16px !important;
     position: absolute;
   }
-
-  .logo-container img {
-    height: 48px;
-  }
-
-  .logo-container h1 {
-    font-size: 1rem;
-  }
 }
 
 @media (max-width: 480px) {
+  .bottom-panel {
+    height: auto;
+    max-height: 35vh;
+  }
+
   .tools-panel {
     top: 50px;
     right: 8px;
@@ -509,25 +514,17 @@ button.selected, .btn.selected, .Button.selected {
   }
 
   .legend-panel {
-    bottom: 140px;
-    left: 16px;
+    bottom: 160px;
+    left: 8px;
     z-index: 1200;
     background-color: rgba(255, 255, 255, 0.8) !important;
-    padding: 16px !important;
+    padding: 12px !important;
     position: absolute;
   }
 
-  .logo-container img {
-    height: 40px;
-  }
-
-  .logo-container h1 {
-    font-size: 0.9rem;
-  }
-
-  .events-table td, .events-table th {
-    padding: 8px;
-    font-size: 0.85rem;
+  /* Sidebar remains hidden on mobile */
+  .main-content > div:last-child {
+    display: none;
   }
 }
 
